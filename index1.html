@@ -1,0 +1,324 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Erling Haaland — Goals Tracker</title>
+  <style>
+    :root{
+      --bg:#0f1724; --card:#0b1220; --muted:#9aa6b2; --accent:#ffd166; --accent-2:#60a5fa;
+      --glass: rgba(255,255,255,0.03);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;
+      background: linear-gradient(180deg,#071024 0%, #04101a 100%); color:#e6eef6;
+      padding:28px;
+    }
+    .container{max-width:980px;margin:0 auto}
+    header{display:flex;align-items:center;gap:16px;margin-bottom:18px}
+    .avatar{
+      width:64px;height:64px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      display:flex;align-items:center;justify-content:center;font-weight:700;color:#062034;font-size:22px;
+      box-shadow:0 6px 18px rgba(0,0,0,.45);
+    }
+    h1{margin:0;font-size:20px}
+    p.lead{margin:0;color:var(--muted);font-size:13px}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:0 6px 18px rgba(2,6,23,.6)}
+    form .row{display:flex;gap:8px;margin-bottom:8px}
+    input[type="text"], input[type="date"], input[type="number"], select{
+      width:100%;padding:8px;border-radius:8px;border:1px solid rgba(255,255,255,0.05);background:var(--glass);
+      color:inherit;
+    }
+    button{background:linear-gradient(180deg,#2b6cb0,#2c5282);color:white;padding:8px 10px;border-radius:8px;border:0;cursor:pointer}
+    button.ghost{background:transparent;border:1px solid rgba(255,255,255,0.06);}
+    .small{padding:6px 8px;font-size:13px}
+    .stats{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+    .stat{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:10px;border-radius:10px;min-width:120px}
+    .list{max-height:520px;overflow:auto;margin-top:8px}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:8px;text-align:left;border-bottom:1px dashed rgba(255,255,255,0.03)}
+    th{position:sticky;top:0;background:transparent;color:var(--muted);font-size:12px}
+    .controls{display:flex;gap:6px}
+    .btn-xs{padding:6px 8px;border-radius:8px;border:0;cursor:pointer}
+    .btn-red{background:#ef4444;color:white}
+    .btn-muted{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted)}
+    .muted{color:var(--muted);font-size:13px}
+    .search{display:flex;gap:8px;margin-bottom:8px}
+    .footer-actions{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end;margin-top:10px}
+    @media (max-width:880px){ .grid{grid-template-columns:1fr} .card{padding:12px} }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <div class="avatar">EH</div>
+      <div>
+        <h1>Erling Haaland — Goals Tracker</h1>
+        <p class="lead">Track matches and goals. Data saved locally in your browser.</p>
+      </div>
+    </header>
+
+    <div class="grid">
+      <section class="card" aria-labelledby="add-heading">
+        <h2 id="add-heading" style="margin:0 0 10px 0;font-size:16px">Add / Edit Match</h2>
+
+        <form id="match-form">
+          <div class="row">
+            <input id="date" type="date" required />
+            <input id="opponent" type="text" placeholder="Opponent (e.g. Man City)" required />
+          </div>
+          <div class="row">
+            <select id="competition" aria-label="Competition">
+              <option value="Premier League">Premier League</option>
+              <option value="Champions League">Champions League</option>
+              <option value="FA Cup">FA Cup</option>
+              <option value="League Cup">League Cup</option>
+              <option value="International">International</option>
+              <option value="Other">Other</option>
+            </select>
+            <input id="goals" type="number" min="0" value="1" required />
+          </div>
+          <div style="display:flex;gap:8px">
+            <button id="save" type="submit">Save match</button>
+            <button id="clear-edit" type="button" class="ghost small">Cancel edit</button>
+          </div>
+        </form>
+
+        <div style="margin-top:14px">
+          <div class="muted" style="margin-bottom:6px">Total goals</div>
+          <div class="stats">
+            <div class="stat"><div class="muted">All-time</div><div id="total-goals" style="font-weight:700;font-size:20px">0</div></div>
+            <div class="stat"><div class="muted">Matches</div><div id="total-matches" style="font-weight:700;font-size:20px">0</div></div>
+            <div class="stat"><div class="muted">Goals / Match</div><div id="avg" style="font-weight:700;font-size:20px">0.00</div></div>
+          </div>
+
+          <div style="margin-top:8px" class="muted">Search / Filter</div>
+          <div class="search">
+            <input id="filter" type="text" placeholder="Search opponent or competition" />
+            <select id="sort">
+              <option value="date-desc">Newest</option>
+              <option value="date-asc">Oldest</option>
+              <option value="goals-desc">Most goals</option>
+              <option value="goals-asc">Least goals</option>
+            </select>
+          </div>
+
+          <div class="footer-actions">
+            <button id="export" type="button" class="ghost small">Export JSON</button>
+            <button id="import" type="button" class="ghost small">Import JSON</button>
+            <button id="clear-all" type="button" class="btn-red small">Clear All</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="card" aria-labelledby="list-heading">
+        <h2 id="list-heading" style="margin:0 0 10px 0;font-size:16px">Matches</h2>
+        <div class="list">
+          <table id="matches-table" aria-describedby="list-heading">
+            <thead>
+              <tr><th>Date</th><th>Opponent</th><th>Comp.</th><th>Goals</th><th style="text-align:right">Actions</th></tr>
+            </thead>
+            <tbody id="matches-body"></tbody>
+          </table>
+        </div>
+        <p class="muted" style="margin-top:10px;font-size:13px">Tip: Click + / − to quickly update goals. Edit to change details.</p>
+      </aside>
+    </div>
+  </div>
+
+  <script>
+    (function(){
+      const LS_KEY = 'haaland-goals-v1';
+      const form = document.getElementById('match-form');
+      const dateIn = document.getElementById('date');
+      const oppIn = document.getElementById('opponent');
+      const compIn = document.getElementById('competition');
+      const goalsIn = document.getElementById('goals');
+      const body = document.getElementById('matches-body');
+      const totalGoalsEl = document.getElementById('total-goals');
+      const totalMatchesEl = document.getElementById('total-matches');
+      const avgEl = document.getElementById('avg');
+      const filterIn = document.getElementById('filter');
+      const sortIn = document.getElementById('sort');
+      const exportBtn = document.getElementById('export');
+      const importBtn = document.getElementById('import');
+      const clearAllBtn = document.getElementById('clear-all');
+      const clearEditBtn = document.getElementById('clear-edit');
+
+      let matches = [];
+      let editId = null;
+
+      function uid(){ return Math.random().toString(36).slice(2,9) }
+
+      function save(){
+        localStorage.setItem(LS_KEY, JSON.stringify(matches));
+        render();
+      }
+      function load(){
+        try{
+          const raw = localStorage.getItem(LS_KEY);
+          matches = raw ? JSON.parse(raw) : [];
+        }catch(e){ matches = [] }
+      }
+
+      function render(){
+        const q = filterIn.value.trim().toLowerCase();
+        let list = matches.slice();
+        // sort
+        const s = sortIn.value;
+        if(s === 'date-desc') list.sort((a,b)=> b.date.localeCompare(a.date));
+        if(s === 'date-asc') list.sort((a,b)=> a.date.localeCompare(b.date));
+        if(s === 'goals-desc') list.sort((a,b)=> b.goals - a.goals);
+        if(s === 'goals-asc') list.sort((a,b)=> a.goals - b.goals);
+
+        // filter
+        if(q) list = list.filter(m => (m.opponent||'').toLowerCase().includes(q) || (m.competition||'').toLowerCase().includes(q));
+
+        // render rows
+        body.innerHTML = '';
+        list.forEach(m=>{
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${m.date}</td>
+            <td>${escapeHtml(m.opponent)}</td>
+            <td>${escapeHtml(m.competition)}</td>
+            <td style="font-weight:700">${m.goals}</td>
+            <td style="text-align:right">
+              <div class="controls" style="justify-content:flex-end">
+                <button class="btn-xs" data-action="inc" data-id="${m.id}">＋</button>
+                <button class="btn-xs" data-action="dec" data-id="${m.id}">−</button>
+                <button class="btn-xs btn-muted" data-action="edit" data-id="${m.id}">Edit</button>
+                <button class="btn-xs btn-red" data-action="del" data-id="${m.id}">Delete</button>
+              </div>
+            </td>
+          `;
+          body.appendChild(tr);
+        });
+
+        // stats
+        const totalGoals = matches.reduce((s,m)=> s + (Number(m.goals)||0), 0);
+        totalGoalsEl.textContent = totalGoals;
+        totalMatchesEl.textContent = matches.length;
+        avgEl.textContent = matches.length ? (totalGoals / matches.length).toFixed(2) : '0.00';
+      }
+
+      function escapeHtml(s=''){ return s.replace?.(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;') ?? s }
+
+      // event delegation
+      body.addEventListener('click', (ev)=>{
+        const btn = ev.target.closest('button');
+        if(!btn) return;
+        const id = btn.dataset.id;
+        const action = btn.dataset.action;
+        if(!id || !action) return;
+        const idx = matches.findIndex(x=> x.id === id);
+        if(idx===-1) return;
+        if(action === 'inc'){ matches[idx].goals = Number(matches[idx].goals||0) + 1; save(); }
+        if(action === 'dec'){ matches[idx].goals = Math.max(0, Number(matches[idx].goals||0) - 1); save(); }
+        if(action === 'del'){
+          if(confirm('Delete this match?')){ matches.splice(idx,1); save(); }
+        }
+        if(action === 'edit'){
+          const m = matches[idx];
+          editId = m.id;
+          dateIn.value = m.date;
+          oppIn.value = m.opponent;
+          compIn.value = m.competition;
+          goalsIn.value = m.goals;
+          window.scrollTo({top:0,behavior:'smooth'});
+        }
+      });
+
+      form.addEventListener('submit', (ev)=>{
+        ev.preventDefault();
+        const date = dateIn.value;
+        const opponent = oppIn.value.trim();
+        const competition = compIn.value;
+        const goals = Math.max(0, Math.floor(Number(goalsIn.value) || 0));
+        if(!date || !opponent) { alert('Please provide a date and opponent.'); return; }
+        if(editId){
+          const i = matches.findIndex(m=> m.id === editId);
+          if(i>=0){
+            matches[i] = {...matches[i], date, opponent, competition, goals};
+          }
+          editId = null;
+        } else {
+          matches.push({ id: uid(), date, opponent, competition, goals });
+        }
+        form.reset();
+        goalsIn.value = 1;
+        save();
+      });
+
+      clearEditBtn.addEventListener('click', ()=>{
+        editId = null;
+        form.reset();
+        goalsIn.value = 1;
+      });
+
+      filterIn.addEventListener('input', render);
+      sortIn.addEventListener('change', render);
+
+      exportBtn.addEventListener('click', ()=>{
+        const data = JSON.stringify(matches, null, 2);
+        const blob = new Blob([data], {type:'application/json'});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'haaland-goals.json';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+      });
+
+      importBtn.addEventListener('click', async ()=>{
+        const txt = prompt('Paste JSON data here (or press Cancel):');
+        if(!txt) return;
+        try {
+          const parsed = JSON.parse(txt);
+          if(!Array.isArray(parsed)) throw new Error('Expected an array');
+          // basic validation
+          for(const p of parsed){
+            if(typeof p.date !== 'string' || typeof p.opponent !== 'string') throw new Error('Invalid entry');
+            p.id = p.id || uid();
+            p.goals = Number(p.goals)||0;
+            p.competition = p.competition || 'Other';
+          }
+          if(confirm('Replace current data with imported data? OK = Replace, Cancel = Append')) {
+            matches = parsed;
+          } else {
+            matches = matches.concat(parsed);
+          }
+          save();
+        } catch(e){
+          alert('Failed to import JSON: ' + e.message);
+        }
+      });
+
+      clearAllBtn.addEventListener('click', ()=>{
+        if(confirm('Clear all stored matches? This cannot be undone.')) {
+          matches = [];
+          save();
+        }
+      });
+
+      // init
+      load();
+      render();
+
+      // seed demo data if empty (optional)
+      if(matches.length === 0){
+        // small sample entries you can remove later
+        matches.push(
+          {id:uid(), date:'2022-05-14', opponent:'Chelsea', competition:'Premier League', goals:1},
+          {id:uid(), date:'2022-03-12', opponent:'Leeds United', competition:'Premier League', goals:2}
+        );
+        save();
+      }
+    })();
+  </script>
+</body>
+</html>
